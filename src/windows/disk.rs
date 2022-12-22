@@ -24,23 +24,6 @@ type DWORD = u32;
 #[allow(non_camel_case_types)]
 type ULARGE_INTEGER = u64;
 
-/*
-use winapi::ctypes::c_void;
-use winapi::shared::minwindef::{DWORD, MAX_PATH};
-use winapi::um::fileapi::{
-    CreateFileW, GetDiskFreeSpaceExW, GetDriveTypeW, GetLogicalDrives, GetVolumeInformationW,
-    OPEN_EXISTING,
-};
-use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
-use winapi::um::ioapiset::DeviceIoControl;
-use winapi::um::winbase::{DRIVE_FIXED, DRIVE_REMOVABLE};
-use winapi::um::winioctl::{
-    PropertyStandardQuery, StorageDeviceSeekPenaltyProperty, IOCTL_STORAGE_QUERY_PROPERTY,
-    STORAGE_PROPERTY_QUERY,
-};
-use winapi::um::winnt::{BOOLEAN, FILE_SHARE_READ, FILE_SHARE_WRITE, HANDLE, ULARGE_INTEGER};
- */
-
 #[doc = include_str!("../../md_doc/disk.md")]
 pub struct Disk {
     type_: DiskType,
