@@ -36,6 +36,7 @@ cfg_if::cfg_if! {
         use windows as sys;
         extern crate winapi;
         extern crate ntapi;
+        extern crate windows_sys;
         mod network_helper_win;
         use network_helper_win as network_helper;
         mod network;

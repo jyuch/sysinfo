@@ -7,27 +7,23 @@ use crate::{
 };
 
 use std::ptr::null_mut;
-use winapi::shared::lmcons::{MAX_PREFERRED_LENGTH, NET_API_STATUS};
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::ntstatus::STATUS_SUCCESS;
-use winapi::shared::winerror::ERROR_MORE_DATA;
-use winapi::um::lmaccess::{NetUserEnum, NetUserGetLocalGroups};
-use winapi::um::lmaccess::{
-    FILTER_NORMAL_ACCOUNT, LG_INCLUDE_INDIRECT, LPLOCALGROUP_USERS_INFO_0, USER_INFO_0,
+use windows_sys::core::PCWSTR;
+use windows_sys::Win32::Foundation::{ERROR_MORE_DATA, LUID, STATUS_SUCCESS};
+use windows_sys::Win32::NetworkManagement::NetManagement::{
+    NetApiBufferFree, NetUserEnum, NetUserGetLocalGroups, FILTER_NORMAL_ACCOUNT,
+    LG_INCLUDE_INDIRECT, LOCALGROUP_USERS_INFO_0, MAX_PREFERRED_LENGTH, USER_INFO_0,
 };
-use winapi::um::lmapibuf::NetApiBufferFree;
-use winapi::um::ntlsa::{
+use windows_sys::Win32::Security::Authentication::Identity::{
     LsaEnumerateLogonSessions, LsaFreeReturnBuffer, LsaGetLogonSessionData,
-    PSECURITY_LOGON_SESSION_DATA,
+    SECURITY_LOGON_SESSION_DATA,
 };
-use winapi::um::winnt::{LPWSTR, PLUID};
 
 // FIXME: once this is mreged in winapi, it can be removed.
 #[allow(non_upper_case_globals)]
-const NERR_Success: NET_API_STATUS = 0;
+const NERR_Success: u32 = 0;
 
-unsafe fn get_groups_for_user(username: LPWSTR) -> Vec<String> {
-    let mut buf: LPLOCALGROUP_USERS_INFO_0 = null_mut();
+unsafe fn get_groups_for_user(username: PCWSTR) -> Vec<String> {
+    let mut buf: *mut LOCALGROUP_USERS_INFO_0 = null_mut();
     let mut nb_entries = 0;
     let mut total_entries = 0;
     let mut groups;
@@ -75,7 +71,7 @@ pub unsafe fn get_users() -> Vec<User> {
     let mut buffer: *mut USER_INFO_0 = null_mut();
     let mut nb_read = 0;
     let mut total = 0;
-    let mut resume_handle: DWORD = 0;
+    let mut resume_handle: u32 = 0;
 
     loop {
         let status = NetUserEnum(
@@ -146,13 +142,13 @@ pub unsafe fn get_users() -> Vec<User> {
 
     // First part done. Second part now!
     let mut nb_sessions = 0;
-    let mut uids: PLUID = null_mut();
+    let mut uids: *mut LUID = null_mut();
     if LsaEnumerateLogonSessions(&mut nb_sessions, &mut uids) != STATUS_SUCCESS {
         sysinfo_debug!("LsaEnumerateLogonSessions failed");
     } else {
         for offset in 0..nb_sessions {
             let entry = uids.add(offset as _);
-            let mut data: PSECURITY_LOGON_SESSION_DATA = null_mut();
+            let mut data: *mut SECURITY_LOGON_SESSION_DATA = null_mut();
 
             if LsaGetLogonSessionData(entry, &mut data) == STATUS_SUCCESS && !data.is_null() {
                 let data = *data;
