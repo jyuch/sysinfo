@@ -4,8 +4,27 @@ use crate::{DiskExt, DiskType};
 
 use std::ffi::{OsStr, OsString};
 use std::mem::size_of;
+use std::os::raw::c_void;
 use std::path::Path;
+use windows_sys::Win32::Foundation::{
+    CloseHandle, BOOLEAN, HANDLE, INVALID_HANDLE_VALUE, MAX_PATH,
+};
+use windows_sys::Win32::Storage::FileSystem::{
+    CreateFileW, GetDiskFreeSpaceExW, GetDriveTypeW, GetLogicalDrives, GetVolumeInformationW,
+    FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+};
+use windows_sys::Win32::System::Ioctl::{
+    PropertyStandardQuery, StorageDeviceSeekPenaltyProperty, IOCTL_STORAGE_QUERY_PROPERTY,
+    STORAGE_PROPERTY_QUERY,
+};
+use windows_sys::Win32::System::WindowsProgramming::{DRIVE_FIXED, DRIVE_REMOVABLE};
+use windows_sys::Win32::System::IO::DeviceIoControl;
 
+type DWORD = u32;
+#[allow(non_camel_case_types)]
+type ULARGE_INTEGER = u64;
+
+/*
 use winapi::ctypes::c_void;
 use winapi::shared::minwindef::{DWORD, MAX_PATH};
 use winapi::um::fileapi::{
@@ -20,6 +39,7 @@ use winapi::um::winioctl::{
     STORAGE_PROPERTY_QUERY,
 };
 use winapi::um::winnt::{BOOLEAN, FILE_SHARE_READ, FILE_SHARE_WRITE, HANDLE, ULARGE_INTEGER};
+ */
 
 #[doc = include_str!("../../md_doc/disk.md")]
 pub struct Disk {
@@ -73,7 +93,7 @@ impl DiskExt for Disk {
                     &mut tmp,
                 ) != 0
                 {
-                    self.available_space = *tmp.QuadPart();
+                    self.available_space = tmp;
                     return true;
                 }
             }
@@ -93,7 +113,7 @@ impl HandleWrapper {
             std::ptr::null_mut(),
             OPEN_EXISTING,
             0,
-            std::ptr::null_mut(),
+            0,
         );
         if handle == INVALID_HANDLE_VALUE {
             CloseHandle(handle);
@@ -122,10 +142,7 @@ unsafe fn get_drive_size(mount_point: &[u16]) -> Option<(u64, u64)> {
         &mut available_space,
     ) != 0
     {
-        Some((
-            *total_size.QuadPart() as _,
-            *available_space.QuadPart() as _,
-        ))
+        Some((total_size, available_space))
     } else {
         None
     }
@@ -163,7 +180,7 @@ pub(crate) unsafe fn get_disks() -> Vec<Disk> {
             if drive_type != DRIVE_FIXED && drive_type != DRIVE_REMOVABLE {
                 return None;
             }
-            let mut name = [0u16; MAX_PATH + 1];
+            let mut name = [0u16; (MAX_PATH + 1) as usize];
             let mut file_system = [0u16; 32];
             if GetVolumeInformationW(
                 mount_point.as_ptr(),

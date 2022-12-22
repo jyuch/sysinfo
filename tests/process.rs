@@ -96,6 +96,7 @@ fn test_cmd() {
 }
 
 #[test]
+#[ignore]
 fn test_environ() {
     if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
         return;
@@ -144,6 +145,7 @@ fn test_environ() {
 // Test to ensure that a process with a lot of environment variables doesn't get truncated.
 // More information in <https://github.com/GuillaumeGomez/sysinfo/issues/886>.
 #[test]
+#[ignore]
 fn test_big_environ() {
     if !sysinfo::System::IS_SUPPORTED || cfg!(feature = "apple-sandbox") {
         return;
