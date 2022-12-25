@@ -1,7 +1,7 @@
 // Take a look at the license at the top of the repository in the LICENSE file.
 
 use winapi::shared::minwindef::FILETIME;
-use winapi::um::winnt::LPWSTR;
+use windows_sys::core::PWSTR;
 
 use std::time::SystemTime;
 
@@ -18,7 +18,7 @@ pub(crate) fn get_now() -> u64 {
         .unwrap_or(0)
 }
 
-pub(crate) unsafe fn to_str(p: LPWSTR) -> String {
+pub(crate) unsafe fn to_str(p: PWSTR) -> String {
     let mut i = 0;
 
     loop {
